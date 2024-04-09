@@ -1,6 +1,7 @@
-import React,  { useRef, useState } from "react";
+import React,  { useRef, useState, useContext } from "react";
 import Modal from "../components/Modal/Modal";
 import Backdrop from "../components/Backdrop/Backdrop";
+import AuthContext from "../context/auth-context";
 import './Events.css';
 
 export default function EventsPage() {
@@ -10,24 +11,75 @@ export default function EventsPage() {
     const dateElRef = useRef(null);
     const descriptionElRef = useRef(null);
 
-    const startCreateEventHandler = () => { 
-           setCreating(true);
-        };
+    const authContext = useContext(AuthContext);
+
+    function startCreateEventHandler() {
+        setCreating(true);
+    }
 
     const modalConfirmHandler = () => {
         setCreating(false);
-        creating.preventDefault();
         const title = titleElRef.current.value;
         const price = +priceElRef.current.value;
         const date = dateElRef.current.value;
         const description = descriptionElRef.current.value;
 
-        if (title.trim().lenght === 0 || price.trim().lenght === 0 || date.trim().lenght === 0 || description.trim().length === 0) {
+        if (title.trim().length === 0 || price <= 0 || date.trim().length === 0 || description.trim().length === 0) {
             return;
         }
 
         const event = { title, price, date, description};
         console.log(event);
+
+        const requestBody = {
+            query: `
+                mutation {
+                    createEvent(eventInput: {title: "${title}", description: "${description}", price: "${price}", date: "${date}"}) {
+                    _id
+                    title
+                    description
+                    date
+                    price
+                    creator {
+                        _id
+                        email
+                    }
+                    }
+                }
+            `,
+            variables: {
+                title: title,
+                description: description,
+                price: price,
+                date: date
+            }
+    }; 
+        
+        const token = authContext.token;
+
+        fetch('http://localhost:8000/graphql', {
+            method: 'POST',
+            body: JSON.stringify(requestBody),
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token,
+            }
+        })
+        .then(res => {
+            if (res.status !== 200 && res.status !== 201) {
+                throw new Error('Failed!');
+            }
+            return res.json();
+        })
+        .then(resData => {
+            console.log(resData);
+            if (resData.errors) {
+                throw new Error('Failed!' + resData.errors[0].message);
+            }
+        })
+            .catch(err => {
+                console.log('Error during mutation:', err);
+            });
         
     }
 

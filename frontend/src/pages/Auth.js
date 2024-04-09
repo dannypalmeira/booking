@@ -13,15 +13,16 @@ const AuthPage = () => {
         setIsLogin(prevStateLogin => !prevStateLogin);
     };
 
-    const submitHandler = (event) => {
+    const submitHandler = event => {
         event.preventDefault();
         const email = emailEl.current.value;
         const password = passwordEl.current.value;
+
         if (email.trim().length === 0 || password.trim().length === 0) {
             return;
         }
 
-        let requestBody = {
+        const requestBody = {
             query: `
                 ${isLogin ? 'query' : 'mutation'} {
                     ${isLogin ? 'login' : 'createUser'}(email: "${email}", password: "${password}") {
@@ -31,7 +32,8 @@ const AuthPage = () => {
                     }
                 }
             `
-        };       
+        };
+        
 
         fetch('http://localhost:8000/graphql', {
             method: 'POST',
@@ -47,30 +49,34 @@ const AuthPage = () => {
             return res.json();
         })
         .then(resData => {
-            if (resData.errors) {
-                throw new Error('Authentication failed!');
+            if (resData.data.login.token) {
+                login(
+                    resData.data.login.token,
+                    resData.data.login.userId,
+                    resData.data.login.tokenExpiration
+                );
             }
-            const {token, userId, tokenExpiration } = resData.data[isLogin ? 'login' : 'createUser'];
-            login(token, userId, tokenExpiration);
         })
-            .catch(err => {
-                console.log(err);
-            });
+        .catch(err => {
+            console.log(err);
+        });
     };
 
     return (
         <form className="auth-form" onSubmit={submitHandler}>
             <div className="form-control">
-                <label htmlFor="email">E-mail: </label>
-                <input id="email" name="email" type="email" ref={emailEl} />
+                <label htmlFor="email">E-Mail</label>
+                <input type="email" id="email" ref={emailEl} />
             </div>
             <div className="form-control">
-                <label htmlFor="password">Password: </label>
-                <input id="password" name="password" type="password" ref={passwordEl} />
+                <label htmlFor="password">Password</label>
+                <input type="password" id="password" ref={passwordEl} />
             </div>
             <div className="form-actions">
                 <button type="submit">Submit</button>
-                <button type="button" onClick={switchModeHandler}>Switch to {isLogin ? 'Singup' : 'Login'}</button>
+                <button type="button" onClick={switchModeHandler}>
+                    Switch to {isLogin ? 'Signup' : 'Login'}
+                </button>
             </div>
         </form>
     );
