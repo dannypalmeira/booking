@@ -1,23 +1,32 @@
-import React,  { useRef, useState, useContext } from "react";
+import React,  { useRef, useState, useContext, useEffect } from "react";
 import Modal from "../components/Modal/Modal";
 import Backdrop from "../components/Backdrop/Backdrop";
 import AuthContext from "../context/auth-context";
+import EventList from "../components/Events/EventList";
+import Spinner from "../components/Spinner/Spinner";
 import './Events.css';
 
 export default function EventsPage() {
     const [creating, setCreating] = useState(false);
+    const [events, setEvents] = useState([]);
     const titleElRef = useRef(null);
     const priceElRef = useRef(null);
     const dateElRef = useRef(null);
+    const [loading, isLoading] = useState(true);
     const descriptionElRef = useRef(null);
 
     const authContext = useContext(AuthContext);
+    const token = authContext.token;
 
+    const setLoading = () => {
+        isLoading (true);
+    };
+ 
     const startCreateEventHandler = () => { 
            setCreating(true);
         };
 
-    const modalConfirmHandler = () => {
+     const modalConfirmHandler = () => {
         setCreating(false);
         const title = titleElRef.current.value;
         const price = +priceElRef.current.value;
@@ -75,10 +84,8 @@ export default function EventsPage() {
             return res.json();
         })
         .then(resData => {
-            console.log(resData);
-            if (resData.errors) {
-                throw new Error('Authentication failed!');
-            }
+            const updatedEvents = [...events, resData.data.createEvent];
+            setEvents(updatedEvents);
         }) 
         .catch(err => {
             console.log(err);
@@ -88,6 +95,54 @@ export default function EventsPage() {
     const modalCancelHandle = () => {
         setCreating(false);
     };
+
+    const fetchEvents = () => {
+        const requestBody = {
+            query: `
+                query {
+                     events {
+                        _id
+                        title
+                        description
+                        price
+                        date
+                        creator {
+                            _id
+                            email
+                        }
+                    }
+                }
+            `
+        };       
+
+        fetch('http://localhost:8000/graphql', {
+            method: 'POST',
+            body: JSON.stringify(requestBody),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+            
+        })
+        .then(res => {
+            if (res.status !== 200 && res.status !== 201) {
+                throw new Error('Failed!');
+            } 
+            return res.json();
+        })
+        .then(resData => {
+            const fetchedEvents = resData.data.events;
+            setEvents(fetchedEvents);
+        }) 
+        .catch(err => {
+            console.log(err);
+            console.error('Error fetching events:', err);
+        }); 
+    };
+
+    useEffect(() => {
+        fetchEvents();
+    }, [creating]);
+
 
         return (
             <React.Fragment>
@@ -113,10 +168,12 @@ export default function EventsPage() {
                 </form>
 
             </Modal> }
+            {token && (
             <div className="events-control">
                 <p>Share your own Events!</p>
                 <button className="btn" onClick={startCreateEventHandler}>Create Event</button>
-            </div>
+            </div>)}
+                {setLoading ? (<Spinner /> ) : <EventList events={events} authUserId={authContext.userId} />}
             </React.Fragment>
             );   
 }

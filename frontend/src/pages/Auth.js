@@ -60,6 +60,7 @@ const AuthPage = () => {
 
     return (
         <form className="auth-form" onSubmit={submitHandler}>
+            <div className="form-control"><h1>{isLogin ? 'Login' : 'SignUp'}</h1></div>
             <div className="form-control">
                 <label htmlFor="email">E-mail: </label>
                 <input id="email" name="email" type="email" ref={emailEl} />
