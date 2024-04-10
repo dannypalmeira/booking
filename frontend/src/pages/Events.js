@@ -13,9 +13,9 @@ export default function EventsPage() {
 
     const authContext = useContext(AuthContext);
 
-    function startCreateEventHandler() {
-        setCreating(true);
-    }
+    const startCreateEventHandler = () => { 
+           setCreating(true);
+        };
 
     const modalConfirmHandler = () => {
         setCreating(false);
@@ -24,37 +24,39 @@ export default function EventsPage() {
         const date = dateElRef.current.value;
         const description = descriptionElRef.current.value;
 
-        if (title.trim().length === 0 || price <= 0 || date.trim().length === 0 || description.trim().length === 0) {
+        if (title.trim().length === 0 || price<= 0 || date.trim().length === 0 || description.trim().length === 0) {
             return;
         }
 
-        const event = { title, price, date, description};
+        const event = { title, price, date, description };
         console.log(event);
 
         const requestBody = {
             query: `
-                mutation {
-                    createEvent(eventInput: {title: "${title}", description: "${description}", price: "${price}", date: "${date}"}) {
-                    _id
-                    title
-                    description
-                    date
-                    price
-                    creator {
+                mutation CreateEvent($eventInput: EventInput) {
+                    createEvent(eventInput: $eventInput) {
                         _id
-                        email
-                    }
+                        title
+                        description
+                        price
+                        date
+                        creator {
+                            _id
+                            email
+                        }
                     }
                 }
             `,
             variables: {
-                title: title,
-                description: description,
-                price: price,
-                date: date
+                eventInput: {
+                    title: title,
+                    description: description,
+                    price: price,
+                    date: date,
+                }
             }
-    }; 
-        
+        };
+
         const token = authContext.token;
 
         fetch('http://localhost:8000/graphql', {
@@ -62,30 +64,30 @@ export default function EventsPage() {
             body: JSON.stringify(requestBody),
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token,
+                Authorization: 'Bearer ' + token
             }
+            
         })
         .then(res => {
             if (res.status !== 200 && res.status !== 201) {
                 throw new Error('Failed!');
-            }
+            } 
             return res.json();
         })
         .then(resData => {
             console.log(resData);
             if (resData.errors) {
-                throw new Error('Failed!' + resData.errors[0].message);
+                throw new Error('Authentication failed!');
             }
-        })
-            .catch(err => {
-                console.log('Error during mutation:', err);
-            });
-        
-    }
+        }) 
+        .catch(err => {
+            console.log(err);
+        });        
+    };
 
     const modalCancelHandle = () => {
         setCreating(false);
-    }
+    };
 
         return (
             <React.Fragment>
