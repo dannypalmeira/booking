@@ -31,12 +31,12 @@ const App = () => {
           <MainNavigation />
           <main className='main-content'>
             <Routes>
+              {!token && <Route path="/" element={<Navigate to="/auth" />} />}
               {token && <Route path="/" element={<Navigate to="/events" />} />}
               {token && <Route path="/auth" element={<Navigate to="/events" />} />}
               {!token && <Route path="/auth" element={<AuthPage />} />}
               <Route path="/events" element={<EventsPage />} />
               {token && <Route path="/bookings" element={<BookingPage />} />}
-              {!token && <Route path="/" element={<Navigate to="/auth" />} />}
             </Routes>
           </main>
         </AuthContext.Provider>
